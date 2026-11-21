@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""SnapFolda product_highlight 增量改写引擎 -> GMC 补充数据源 TSV。
+"""product_highlight 增量改写引擎 -> GMC 补充数据源 TSV.
 
 原则（用户 2026-11-22 定稿）：
   * 允许核心卖点跨字段重复（Title/Desc 已说 RFID/可拆 也没关系）
