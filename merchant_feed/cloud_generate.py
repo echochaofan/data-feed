@@ -116,13 +116,23 @@ def gid_num(g):
     return str(g or "").rsplit("/", 1)[-1]
 
 
+def _norm_material(v):
+    """Feed-layer display normalization (does not touch Shopify source data)."""
+    if not v:
+        return v
+    low = v.lower()
+    if "calfskin" in low:
+        return "Vegan leather" if "vegan" in low else "Leather"
+    return v
+
+
 def material_of(pdp):
     for sec in ("specs", "facts"):
         for it in (pdp.get(sec) or []):
             if str(it.get("label", "")).strip().lower() in ("material", "materials"):
                 v = " ".join(str(it.get("value", "")).split())
                 if v:
-                    return v
+                    return _norm_material(v)
     return None
 
 
