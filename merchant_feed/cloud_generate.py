@@ -9,7 +9,7 @@
   * 输出 public/supplement_feed.xml，由 workflow 部署到 GitHub Pages
 
 环境变量（必填其一）：
-  SHOPIFY_STORE_DOMAIN   c8ntcr-ij.myshopify.com
+  SHOPIFY_STORE_DOMAIN   <store>.myshopify.com
   SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET   （client_credentials 换 token）
   或 SHOPIFY_ACCESS_TOKEN （静态 token，二选一）
 
