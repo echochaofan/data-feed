@@ -66,7 +66,7 @@ def short_mat(mat):
         return None
     m = mat.lower()
     if "vegan calfskin" in m:
-        return "vegan calfskin"
+        return "vegan leather"
     if "faux leather" in m:
         return "faux leather"
     if "aluminum" in m:
@@ -103,7 +103,10 @@ def build_highlights(o):
     # 维度一：安全 / 防护（rfid > shock > camera > zipper > heavy）
     if "rfid" in F:
         if isinstance(slots, int) and slots > 0:
-            out.append("RFID-blocking lining shields all %s card slots from skimming." % nword(slots))
+            if slots == 1:
+                out.append("RFID-blocking lining shields the single card slot from skimming.")
+            else:
+                out.append("RFID-blocking lining shields all %s card slots from skimming." % nword(slots))
             taken_bits.add("slots")
         elif slots == "builtin":
             out.append("RFID-blocking lining shields built-in card storage from skimming.")
@@ -201,8 +204,8 @@ def build_highlights(o):
                 "A smooth faux leather finish keeps it looking neat over time.",
             ]
             out.append(variants[h % len(variants)])
-        elif mat == "vegan calfskin":
-            out.append("Wrapped in vegan calfskin for a supple, premium feel.")
+        elif mat == "vegan leather":
+            out.append("Wrapped in vegan leather for a supple, premium feel.")
         elif mat == "aluminum":
             out.append("A forged aluminum body stays light but rigid.")
         elif mat == "liquid silicone":
