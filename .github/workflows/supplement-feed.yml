@@ -5,6 +5,9 @@ on:
     # 每小时第 0 分钟（UTC）。GitHub 免费版可能有几分钟延迟，可接受。
     - cron: "0 * * * *"
   workflow_dispatch: {}
+  push:
+    # 代码改动推送到 main 就重建一次，省得手动点按钮
+    branches: [main]
 
 permissions:
   contents: write
