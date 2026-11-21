@@ -171,6 +171,19 @@ def fetch_all(token):
     return products
 
 
+SKIP_FILE = Path("merchant_feed/data/gmc_skip_offers.txt")
+
+
+def load_skip_offers():
+    """仅向 GMC 中已存在的 offer 提交补充数据；清单缺失时退化为全量。"""
+    try:
+        if SKIP_FILE.exists():
+            return {ln.strip() for ln in SKIP_FILE.read_text(encoding="utf-8").splitlines() if ln.strip()}
+    except Exception:
+        pass
+    return set()
+
+
 def build_xml(products):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">',
@@ -179,6 +192,7 @@ def build_xml(products):
              "    <link>%s</link>" % escape(SHOP_URL),
              "    <description>Supplemental material and product_highlight data</description>"]
     seen = set()
+    skip = load_skip_offers()
     items = 0
     for o in products:
         mat = o.get("material")
@@ -187,7 +201,7 @@ def build_xml(products):
             continue
         for vid in o.get("variant_ids", []):
             gid = "%s%s_%s" % (ID_PREFIX, o["product_id"], vid)
-            if gid in seen:
+            if gid in seen or gid in skip:
                 continue
             seen.add(gid)
             lines.append("    <item>")
