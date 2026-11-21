@@ -165,9 +165,9 @@ def build_xml(products):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">',
              "  <channel>",
-             "    <title>SnapFolda Supplemental Feed</title>",
+             "    <title>Supplemental Product Feed</title>",
              "    <link>%s</link>" % escape(SHOP_URL),
-             "    <description>Supplemental material and product_highlight for SnapFolda</description>"]
+             "    <description>Supplemental material and product_highlight data</description>"]
     seen = set()
     items = 0
     for o in products:
