@@ -65,7 +65,7 @@ def short_mat(mat):
     if not mat:
         return None
     m = mat.lower()
-    if "vegan calfskin" in m:
+    if "vegan calfskin" in m or "vegan leather" in m:
         return "vegan leather"
     if "faux leather" in m:
         return "faux leather"
