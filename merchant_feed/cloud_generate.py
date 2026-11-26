@@ -198,6 +198,21 @@ def load_title_overrides():
     return {}
 
 
+# 覆盖表产品的机型 -> custom_label_3 值（仅这两组写入，其余机型不输出该字段）
+MODEL_LABELS = {
+    "iPhone 17": "ip17",
+    "iPhone 17 Pro Max": "ip17promax",
+}
+
+
+def label_for_title(title):
+    """从覆盖表标题前缀反推机型标签；未登记机型返回空串。"""
+    i = title.find(" Wallet Phone Case")
+    if i <= 0:
+        return ""
+    return MODEL_LABELS.get(title[:i].strip(), "")
+
+
 def load_skip_offers():
     """仅向 GMC 中已存在的 offer 提交补充数据；清单缺失时退化为全量。"""
     try:
@@ -220,6 +235,7 @@ def build_xml(products):
     titles = load_title_overrides()
     items = 0
     t_items = 0
+    l_items = 0
     for o in products:
         mat = o.get("material")
         hl = build_highlights(o)
@@ -238,6 +254,10 @@ def build_xml(products):
                 val = (ttl + " " + col).strip() if col else ttl
                 lines.append("      <g:title>%s</g:title>" % escape(val))
                 t_items += 1
+                lbl = label_for_title(ttl)
+                if lbl:
+                    lines.append("      <g:custom_label_3>%s</g:custom_label_3>" % escape(lbl))
+                    l_items += 1
             if mat:
                 lines.append("      <g:material>%s</g:material>" % escape(mat))
             for s in hl:
@@ -245,7 +265,7 @@ def build_xml(products):
             lines.append("    </item>")
             items += 1
     lines += ["  </channel>", "</rss>", ""]
-    return "\n".join(lines), items, t_items
+    return "\n".join(lines), items, t_items, l_items
 
 
 def main():
@@ -255,13 +275,13 @@ def main():
     print("token ok, fetching products...", flush=True)
     products = fetch_all(token)
     print("fetched %d products, building xml..." % len(products), flush=True)
-    xml, items, t_items = build_xml(products)
+    xml, items, t_items, l_items = build_xml(products)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with OUT.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write(xml)
     size = OUT.stat().st_size
-    print("DONE items=%d titles=%d products=%d size=%.2fMB -> %s"
-          % (items, t_items, len(products), size / 1024 / 1024, OUT), flush=True)
+    print("DONE items=%d titles=%d labels=%d products=%d size=%.2fMB -> %s"
+          % (items, t_items, l_items, len(products), size / 1024 / 1024, OUT), flush=True)
 
 
 if __name__ == "__main__":
