@@ -44,7 +44,7 @@ query($after: String){
     pageInfo { hasNextPage endCursor }
     nodes {
       id
-      variants(first: %d){ nodes { id } }
+      variants(first: %d){ nodes { id title selectedOptions { name value } } }
       pdp: metafield(namespace:"snapfolda", key:"pdp"){ value }
     }
   }
@@ -136,6 +136,14 @@ def material_of(pdp):
     return None
 
 
+def variant_color(v):
+    """GMC 标题后缀用色：优先 Color 选项值，退回变体标题。"""
+    for o in (v.get("selectedOptions") or []):
+        if str(o.get("name", "")).strip().lower() == "color":
+            return " ".join(str(o.get("value", "")).split())
+    return " ".join(str(v.get("title", "")).split())
+
+
 def fetch_all(token):
     products = []
     after = None
@@ -145,7 +153,9 @@ def fetch_all(token):
         conn = data["products"]
         for n in conn.get("nodes") or []:
             pid = gid_num(n.get("id"))
-            vids = [gid_num(v.get("id")) for v in (n.get("variants") or {}).get("nodes", []) if v.get("id")]
+            vnodes = [v for v in (n.get("variants") or {}).get("nodes", []) if v.get("id")]
+            vids = [gid_num(v.get("id")) for v in vnodes]
+            colors = {gid_num(v.get("id")): variant_color(v) for v in vnodes}
             mf = n.get("pdp") or {}
             pdp = {}
             if mf.get("value"):
@@ -156,6 +166,7 @@ def fetch_all(token):
             products.append({
                 "product_id": pid,
                 "variant_ids": vids,
+                "variant_colors": colors,
                 "facts": pdp.get("facts") or [],
                 "features": pdp.get("features") or [],
                 "specs": pdp.get("specs") or [],
@@ -172,6 +183,19 @@ def fetch_all(token):
 
 
 SKIP_FILE = Path("merchant_feed/data/gmc_skip_offers.txt")
+TITLE_FILE = Path(__file__).resolve().parent / "data" / "gmc_title_overrides.json"
+
+
+def load_title_overrides():
+    """产品级 title 覆盖表（pid -> title）。文件缺失时该字段整体不输出。"""
+    try:
+        if TITLE_FILE.exists():
+            raw = json.loads(TITLE_FILE.read_text(encoding="utf-8"))
+            t = raw.get("titles") if isinstance(raw, dict) and "titles" in raw else raw
+            return {str(k): " ".join(str(v).split()) for k, v in (t or {}).items() if v}
+    except Exception as e:
+        print("  title overrides skipped: %s" % e, flush=True)
+    return {}
 
 
 def load_skip_offers():
@@ -193,11 +217,14 @@ def build_xml(products):
              "    <description>Supplemental material and product_highlight data</description>"]
     seen = set()
     skip = load_skip_offers()
+    titles = load_title_overrides()
     items = 0
+    t_items = 0
     for o in products:
         mat = o.get("material")
         hl = build_highlights(o)
-        if not mat and not hl:
+        ttl = titles.get(o.get("product_id"))
+        if not mat and not hl and not ttl:
             continue
         for vid in o.get("variant_ids", []):
             gid = "%s%s_%s" % (ID_PREFIX, o["product_id"], vid)
@@ -206,6 +233,11 @@ def build_xml(products):
             seen.add(gid)
             lines.append("    <item>")
             lines.append("      <g:id>%s</g:id>" % escape(gid))
+            if ttl:
+                col = (o.get("variant_colors") or {}).get(vid, "")
+                val = (ttl + " " + col).strip() if col else ttl
+                lines.append("      <g:title>%s</g:title>" % escape(val))
+                t_items += 1
             if mat:
                 lines.append("      <g:material>%s</g:material>" % escape(mat))
             for s in hl:
@@ -213,7 +245,7 @@ def build_xml(products):
             lines.append("    </item>")
             items += 1
     lines += ["  </channel>", "</rss>", ""]
-    return "\n".join(lines), items
+    return "\n".join(lines), items, t_items
 
 
 def main():
@@ -223,11 +255,13 @@ def main():
     print("token ok, fetching products...", flush=True)
     products = fetch_all(token)
     print("fetched %d products, building xml..." % len(products), flush=True)
-    xml, items = build_xml(products)
+    xml, items, t_items = build_xml(products)
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(xml, encoding="utf-8")
+    with OUT.open("w", encoding="utf-8", newline="\n") as fh:
+        fh.write(xml)
     size = OUT.stat().st_size
-    print("DONE items=%d products=%d size=%.2fMB -> %s" % (items, len(products), size / 1024 / 1024, OUT), flush=True)
+    print("DONE items=%d titles=%d products=%d size=%.2fMB -> %s"
+          % (items, t_items, len(products), size / 1024 / 1024, OUT), flush=True)
 
 
 if __name__ == "__main__":
